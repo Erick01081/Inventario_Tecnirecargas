@@ -21,6 +21,7 @@ export default function HomePage(): JSX.Element {
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [tipoOperacion, setTipoOperacion] = useState<'aumentar' | 'disminuir' | null>(null);
   const [modalCrearAbierto, setModalCrearAbierto] = useState<boolean>(false);
+  const [terminoBusqueda, setTerminoBusqueda] = useState<string>('');
 
   /**
    * Carga todos los productos desde la API
@@ -118,6 +119,22 @@ export default function HomePage(): JSX.Element {
     }
   };
 
+  /**
+   * Filtra los productos según el término de búsqueda
+   * Complejidad: O(n) donde n es el número de productos
+   * @returns Array de productos filtrados
+   */
+  const productosFiltrados = productos.filter((producto) => {
+    if (!terminoBusqueda.trim()) {
+      return true;
+    }
+    const busqueda = terminoBusqueda.toLowerCase().trim();
+    return (
+      producto.nombre.toLowerCase().includes(busqueda) ||
+      producto.marca.toLowerCase().includes(busqueda)
+    );
+  });
+
   if (cargando) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -151,12 +168,77 @@ export default function HomePage(): JSX.Element {
           </button>
         </div>
 
-        <ListaProductos
-          productos={productos}
-          onAumentar={manejarAumentar}
-          onDisminuir={manejarDisminuir}
-          onEliminar={manejarEliminar}
-        />
+        {/* Buscador */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={terminoBusqueda}
+                onChange={(e) => setTerminoBusqueda(e.target.value)}
+                placeholder="Buscar por nombre o marca..."
+                className="w-full px-4 py-3 pl-10 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {terminoBusqueda && (
+                <button
+                  onClick={() => setTerminoBusqueda('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {terminoBusqueda && (
+              <p className="mt-2 text-sm text-gray-600">
+                {productosFiltrados.length === 0
+                  ? 'No se encontraron productos'
+                  : `${productosFiltrados.length} producto${productosFiltrados.length !== 1 ? 's' : ''} encontrado${productosFiltrados.length !== 1 ? 's' : ''}`}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {productos.length === 0 && !terminoBusqueda ? (
+          <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
+            <p className="text-gray-500 text-base sm:text-lg">No hay productos en el inventario</p>
+            <p className="text-gray-400 mt-2 text-sm sm:text-base">
+              Crea tu primer producto usando el formulario de arriba
+            </p>
+          </div>
+        ) : (
+          <ListaProductos
+            productos={productosFiltrados}
+            onAumentar={manejarAumentar}
+            onDisminuir={manejarDisminuir}
+            onEliminar={manejarEliminar}
+          />
+        )}
 
         <FormularioProducto
           abierto={modalCrearAbierto}

@@ -31,12 +31,7 @@ export default function ListaProductos({
   onEliminar
 }: ListaProductosProps) {
   if (productos.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center">
-        <p className="text-gray-500 text-base sm:text-lg">No hay productos en el inventario</p>
-        <p className="text-gray-400 mt-2 text-sm sm:text-base">Crea tu primer producto usando el formulario de arriba</p>
-      </div>
-    );
+    return null;
   }
 
   return (
