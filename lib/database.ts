@@ -1,55 +1,82 @@
 import { Producto } from '@/types/producto';
-import fs from 'fs';
-import path from 'path';
 
-const ARCHIVO_DB = path.join(process.cwd(), 'data', 'products.json');
+// Variable global en memoria para almacenar productos
+// En producción con Vercel, esto se reinicia en cada cold start
+// Para persistencia real, usar Vercel KV o una base de datos
+let productosEnMemoria: Producto[] = [];
 
 /**
- * Asegura que el directorio de datos existe
- * Complejidad: O(1)
+ * Intenta leer productos desde el sistema de archivos (solo en desarrollo)
+ * Complejidad: O(n) donde n es el número de productos
+ * @returns Array de productos desde archivo o array vacío
  */
-function asegurarDirectorio(): void {
-  const directorio = path.dirname(ARCHIVO_DB);
-  if (!fs.existsSync(directorio)) {
-    fs.mkdirSync(directorio, { recursive: true });
+function leerDesdeArchivo(): Producto[] {
+  // Solo intentar leer archivo en desarrollo o si estamos en un entorno con sistema de archivos
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const ARCHIVO_DB = path.join(process.cwd(), 'data', 'products.json');
+      
+      if (fs.existsSync(ARCHIVO_DB)) {
+        const contenido = fs.readFileSync(ARCHIVO_DB, 'utf-8');
+        return JSON.parse(contenido);
+      }
+    } catch (error) {
+      // Si falla, continuar con memoria
+      console.warn('No se pudo leer desde archivo, usando memoria:', error);
+    }
+  }
+  return [];
+}
+
+/**
+ * Intenta guardar productos en el sistema de archivos (solo en desarrollo)
+ * Complejidad: O(n) donde n es el número de productos
+ * @param productos - Array de productos a guardar
+ */
+function guardarEnArchivo(productos: Producto[]): void {
+  // Solo intentar guardar archivo en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const ARCHIVO_DB = path.join(process.cwd(), 'data', 'products.json');
+      const directorio = path.dirname(ARCHIVO_DB);
+      
+      if (!fs.existsSync(directorio)) {
+        fs.mkdirSync(directorio, { recursive: true });
+      }
+      
+      fs.writeFileSync(ARCHIVO_DB, JSON.stringify(productos, null, 2), 'utf-8');
+    } catch (error) {
+      // Si falla, solo continuar con memoria
+      console.warn('No se pudo guardar en archivo, usando solo memoria:', error);
+    }
   }
 }
 
 /**
- * Lee todos los productos desde el archivo JSON
+ * Lee todos los productos desde memoria o archivo
  * Complejidad: O(n) donde n es el número de productos
  * @returns Array de productos
  */
 export function leerProductos(): Producto[] {
-  asegurarDirectorio();
-  
-  if (!fs.existsSync(ARCHIVO_DB)) {
-    return [];
+  // Si la memoria está vacía, intentar cargar desde archivo (solo en desarrollo)
+  if (productosEnMemoria.length === 0) {
+    productosEnMemoria = leerDesdeArchivo();
   }
-  
-  try {
-    const contenido = fs.readFileSync(ARCHIVO_DB, 'utf-8');
-    return JSON.parse(contenido);
-  } catch (error) {
-    console.error('Error al leer productos:', error);
-    return [];
-  }
+  return [...productosEnMemoria];
 }
 
 /**
- * Guarda todos los productos en el archivo JSON
+ * Guarda todos los productos en memoria y archivo (si es posible)
  * Complejidad: O(n) donde n es el número de productos
  * @param productos - Array de productos a guardar
  */
 export function guardarProductos(productos: Producto[]): void {
-  asegurarDirectorio();
-  
-  try {
-    fs.writeFileSync(ARCHIVO_DB, JSON.stringify(productos, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error al guardar productos:', error);
-    throw new Error('No se pudo guardar los productos');
-  }
+  productosEnMemoria = productos;
+  guardarEnArchivo(productos);
 }
 
 /**
