@@ -203,7 +203,8 @@ export async function crearProducto(nombre: string, marca: string, inventarioIni
 
       if (error) {
         console.error('Error al crear producto en Supabase:', error);
-        throw new Error('No se pudo crear el producto en Supabase');
+        const mensajeError = error.message || 'No se pudo crear el producto en Supabase';
+        throw new Error(`Error de Supabase: ${mensajeError}. ¿Está creada la tabla 'productos'?`);
       }
 
       return data as Producto;

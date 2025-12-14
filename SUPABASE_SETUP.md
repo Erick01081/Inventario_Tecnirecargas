@@ -24,14 +24,27 @@ CREATE TABLE IF NOT EXISTS productos (
   id TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,
   marca TEXT NOT NULL,
-  inventarioActual INTEGER NOT NULL DEFAULT 0,
+  "inventarioActual" INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Agregar columna inventarioActual si no existe (para tablas ya creadas)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'productos' AND column_name = 'inventarioActual'
+  ) THEN
+    ALTER TABLE productos ADD COLUMN "inventarioActual" INTEGER NOT NULL DEFAULT 0;
+  END IF;
+END $$;
 
 -- Habilitar Row Level Security (RLS)
 ALTER TABLE productos ENABLE ROW LEVEL SECURITY;
 
--- Crear política para permitir todas las operaciones (puedes restringir esto después)
+-- Crear política para permitir todas las operaciones (solo si no existe)
+DROP POLICY IF EXISTS "Permitir todas las operaciones en productos" ON productos;
+
 CREATE POLICY "Permitir todas las operaciones en productos"
 ON productos
 FOR ALL

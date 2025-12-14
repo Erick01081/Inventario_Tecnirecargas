@@ -48,8 +48,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const nuevoProducto = await crearProducto(nombre, marca, inventarioInicial);
     return NextResponse.json(nuevoProducto, { status: 201 });
   } catch (error) {
+    console.error('Error al crear producto:', error);
+    const mensajeError = error instanceof Error ? error.message : 'Error al crear producto';
     return NextResponse.json(
-      { error: 'Error al crear producto' },
+      { error: mensajeError },
       { status: 500 }
     );
   }
