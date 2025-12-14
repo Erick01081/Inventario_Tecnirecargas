@@ -10,7 +10,7 @@ import { Producto } from '@/types/producto';
  */
 export async function GET(): Promise<NextResponse> {
   try {
-    const productos = leerProductos();
+    const productos = await leerProductos();
     return NextResponse.json(productos);
   } catch (error) {
     return NextResponse.json(
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const nuevoProducto = crearProducto(nombre, marca, inventarioInicial);
+    const nuevoProducto = await crearProducto(nombre, marca, inventarioInicial);
     return NextResponse.json(nuevoProducto, { status: 201 });
   } catch (error) {
     return NextResponse.json(

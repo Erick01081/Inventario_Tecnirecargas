@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
-    const producto = obtenerProductoPorId(params.id);
+    const producto = await obtenerProductoPorId(params.id);
     
     if (!producto) {
       return NextResponse.json(
@@ -53,7 +53,7 @@ export async function PATCH(
       );
     }
 
-    const productoActualizado = actualizarInventario(params.id, cantidad);
+    const productoActualizado = await actualizarInventario(params.id, cantidad);
     
     if (!productoActualizado) {
       return NextResponse.json(
@@ -83,7 +83,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
   try {
-    const eliminado = eliminarProducto(params.id);
+    const eliminado = await eliminarProducto(params.id);
     
     if (!eliminado) {
       return NextResponse.json(

@@ -1,17 +1,44 @@
 import { Producto } from '@/types/producto';
 
-// Variable global en memoria para almacenar productos
-// En producción con Vercel, esto se reinicia en cada cold start
-// Para persistencia real, usar Vercel KV o una base de datos
-let productosEnMemoria: Producto[] = [];
+const CLAVE_PRODUCTOS = 'productos:inventario';
 
 /**
- * Intenta leer productos desde el sistema de archivos (solo en desarrollo)
- * Complejidad: O(n) donde n es el número de productos
- * @returns Array de productos desde archivo o array vacío
+ * Obtiene el cliente de Vercel KV si está disponible
+ * Complejidad: O(1)
+ * @returns Cliente KV o null si no está configurado
  */
-function leerDesdeArchivo(): Producto[] {
-  // Solo intentar leer archivo en desarrollo o si estamos en un entorno con sistema de archivos
+function obtenerClienteKV() {
+  try {
+    // Intentar usar Vercel KV si las variables de entorno están configuradas
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      const { kv } = require('@vercel/kv');
+      return kv;
+    }
+  } catch (error) {
+    console.warn('Vercel KV no está disponible, usando almacenamiento local:', error);
+  }
+  return null;
+}
+
+/**
+ * Intenta leer productos desde Vercel KV o archivo local
+ * Complejidad: O(n) donde n es el número de productos
+ * @returns Array de productos
+ */
+async function leerProductosDesdeKV(): Promise<Producto[]> {
+  const kv = obtenerClienteKV();
+  
+  if (kv) {
+    try {
+      const productos = await kv.get<Producto[]>(CLAVE_PRODUCTOS);
+      return productos || [];
+    } catch (error) {
+      console.error('Error al leer desde Vercel KV:', error);
+      return [];
+    }
+  }
+  
+  // Fallback: intentar leer desde archivo (solo en desarrollo)
   if (process.env.NODE_ENV === 'development') {
     try {
       const fs = require('fs');
@@ -23,20 +50,32 @@ function leerDesdeArchivo(): Producto[] {
         return JSON.parse(contenido);
       }
     } catch (error) {
-      // Si falla, continuar con memoria
-      console.warn('No se pudo leer desde archivo, usando memoria:', error);
+      console.warn('No se pudo leer desde archivo:', error);
     }
   }
+  
   return [];
 }
 
 /**
- * Intenta guardar productos en el sistema de archivos (solo en desarrollo)
+ * Intenta guardar productos en Vercel KV o archivo local
  * Complejidad: O(n) donde n es el número de productos
  * @param productos - Array de productos a guardar
  */
-function guardarEnArchivo(productos: Producto[]): void {
-  // Solo intentar guardar archivo en desarrollo
+async function guardarProductosEnKV(productos: Producto[]): Promise<void> {
+  const kv = obtenerClienteKV();
+  
+  if (kv) {
+    try {
+      await kv.set(CLAVE_PRODUCTOS, productos);
+      return;
+    } catch (error) {
+      console.error('Error al guardar en Vercel KV:', error);
+      throw new Error('No se pudo guardar los productos en Vercel KV');
+    }
+  }
+  
+  // Fallback: intentar guardar en archivo (solo en desarrollo)
   if (process.env.NODE_ENV === 'development') {
     try {
       const fs = require('fs');
@@ -50,33 +89,27 @@ function guardarEnArchivo(productos: Producto[]): void {
       
       fs.writeFileSync(ARCHIVO_DB, JSON.stringify(productos, null, 2), 'utf-8');
     } catch (error) {
-      // Si falla, solo continuar con memoria
-      console.warn('No se pudo guardar en archivo, usando solo memoria:', error);
+      console.warn('No se pudo guardar en archivo:', error);
     }
   }
 }
 
 /**
- * Lee todos los productos desde memoria o archivo
+ * Lee todos los productos desde Vercel KV o archivo local
  * Complejidad: O(n) donde n es el número de productos
  * @returns Array de productos
  */
-export function leerProductos(): Producto[] {
-  // Si la memoria está vacía, intentar cargar desde archivo (solo en desarrollo)
-  if (productosEnMemoria.length === 0) {
-    productosEnMemoria = leerDesdeArchivo();
-  }
-  return [...productosEnMemoria];
+export async function leerProductos(): Promise<Producto[]> {
+  return await leerProductosDesdeKV();
 }
 
 /**
- * Guarda todos los productos en memoria y archivo (si es posible)
+ * Guarda todos los productos en Vercel KV o archivo local
  * Complejidad: O(n) donde n es el número de productos
  * @param productos - Array de productos a guardar
  */
-export function guardarProductos(productos: Producto[]): void {
-  productosEnMemoria = productos;
-  guardarEnArchivo(productos);
+export async function guardarProductos(productos: Producto[]): Promise<void> {
+  await guardarProductosEnKV(productos);
 }
 
 /**
@@ -85,8 +118,8 @@ export function guardarProductos(productos: Producto[]): void {
  * @param id - ID del producto a buscar
  * @returns El producto encontrado o null si no existe
  */
-export function obtenerProductoPorId(id: string): Producto | null {
-  const productos = leerProductos();
+export async function obtenerProductoPorId(id: string): Promise<Producto | null> {
+  const productos = await leerProductos();
   const producto = productos.find(p => p.id === id);
   return producto || null;
 }
@@ -99,8 +132,8 @@ export function obtenerProductoPorId(id: string): Producto | null {
  * @param inventarioInicial - Cantidad inicial en inventario
  * @returns El producto creado
  */
-export function crearProducto(nombre: string, marca: string, inventarioInicial: number): Producto {
-  const productos = leerProductos();
+export async function crearProducto(nombre: string, marca: string, inventarioInicial: number): Promise<Producto> {
+  const productos = await leerProductos();
   
   const nuevoProducto: Producto = {
     id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -110,7 +143,7 @@ export function crearProducto(nombre: string, marca: string, inventarioInicial: 
   };
   
   productos.push(nuevoProducto);
-  guardarProductos(productos);
+  await guardarProductos(productos);
   
   return nuevoProducto;
 }
@@ -122,8 +155,8 @@ export function crearProducto(nombre: string, marca: string, inventarioInicial: 
  * @param cantidad - Cantidad a agregar (positiva) o restar (negativa)
  * @returns El producto actualizado o null si no existe
  */
-export function actualizarInventario(id: string, cantidad: number): Producto | null {
-  const productos = leerProductos();
+export async function actualizarInventario(id: string, cantidad: number): Promise<Producto | null> {
+  const productos = await leerProductos();
   const indice = productos.findIndex(p => p.id === id);
   
   if (indice === -1) {
@@ -136,7 +169,7 @@ export function actualizarInventario(id: string, cantidad: number): Producto | n
     productos[indice].inventarioActual = 0;
   }
   
-  guardarProductos(productos);
+  await guardarProductos(productos);
   
   return productos[indice];
 }
@@ -147,8 +180,8 @@ export function actualizarInventario(id: string, cantidad: number): Producto | n
  * @param id - ID del producto a eliminar
  * @returns true si se eliminó correctamente, false si no existe
  */
-export function eliminarProducto(id: string): boolean {
-  const productos = leerProductos();
+export async function eliminarProducto(id: string): Promise<boolean> {
+  const productos = await leerProductos();
   const indice = productos.findIndex(p => p.id === id);
   
   if (indice === -1) {
@@ -156,7 +189,7 @@ export function eliminarProducto(id: string): boolean {
   }
   
   productos.splice(indice, 1);
-  guardarProductos(productos);
+  await guardarProductos(productos);
   
   return true;
 }

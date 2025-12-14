@@ -9,8 +9,9 @@ Aplicación web de gestión de inventario construida con Next.js, TypeScript y T
 - ✅ Aumentar cantidad del inventario
 - ✅ Disminuir cantidad del inventario
 - ✅ Eliminar productos
-- ✅ Base de datos simple usando archivo JSON
-- ✅ Interfaz moderna y responsiva
+- ✅ Buscador de productos por nombre o marca
+- ✅ Persistencia de datos con Vercel KV (Redis)
+- ✅ Interfaz moderna y responsiva (móvil y desktop)
 
 ## Requisitos
 
@@ -41,13 +42,26 @@ npm run dev
 
 ## Base de Datos
 
-La aplicación utiliza un archivo JSON (`data/products.json`) como base de datos simple. Este archivo se crea automáticamente cuando se crea el primer producto.
+La aplicación utiliza **Vercel KV** (Redis) para persistir los datos en producción. En desarrollo local, usa archivos JSON.
+
+### Configuración de Vercel KV (Requerido para Producción)
+
+**IMPORTANTE:** Sin Vercel KV configurado, los datos se perderán en cada "cold start" de Vercel.
+
+Para configurar Vercel KV:
+
+1. Ve a tu proyecto en [Vercel Dashboard](https://vercel.com/dashboard)
+2. Ve a la pestaña **Storage** > **Create Database** > Selecciona **KV**
+3. Conecta la base de datos a tu proyecto
+4. Vercel configurará automáticamente las variables de entorno necesarias
+5. Redespliega tu aplicación
+
+Ver `VERCEL_KV_SETUP.md` para instrucciones detalladas.
 
 ## Despliegue en Vercel
 
 1. Conecta tu repositorio a Vercel
 2. Vercel detectará automáticamente Next.js
-3. El despliegue se realizará automáticamente
-
-**Nota:** Para producción, considera usar una base de datos real como Vercel Postgres, MongoDB, o similar.
+3. Configura Vercel KV (ver arriba)
+4. El despliegue se realizará automáticamente
 
