@@ -7,7 +7,7 @@ const CLAVE_PRODUCTOS = 'productos:inventario';
  * Complejidad: O(1)
  * @returns Cliente KV o null si no está configurado
  */
-function obtenerClienteKV() {
+function obtenerClienteKV(): any {
   try {
     // Intentar usar Vercel KV si las variables de entorno están configuradas
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
@@ -30,7 +30,7 @@ async function leerProductosDesdeKV(): Promise<Producto[]> {
   
   if (kv) {
     try {
-      const productos = await kv.get<Producto[]>(CLAVE_PRODUCTOS);
+      const productos = await kv.get(CLAVE_PRODUCTOS) as Producto[] | null;
       return productos || [];
     } catch (error) {
       console.error('Error al leer desde Vercel KV:', error);
