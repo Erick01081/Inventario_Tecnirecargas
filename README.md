@@ -10,7 +10,7 @@ Aplicación web de gestión de inventario construida con Next.js, TypeScript y T
 - ✅ Disminuir cantidad del inventario
 - ✅ Eliminar productos
 - ✅ Buscador de productos por nombre o marca
-- ✅ Persistencia de datos con Vercel KV (Redis)
+- ✅ Persistencia de datos con Supabase (PostgreSQL)
 - ✅ Interfaz moderna y responsiva (móvil y desktop)
 
 ## Requisitos
@@ -42,21 +42,23 @@ npm run dev
 
 ## Base de Datos
 
-La aplicación utiliza **Vercel KV** (Redis) para persistir los datos en producción. En desarrollo local, usa archivos JSON.
+La aplicación utiliza **Supabase** (PostgreSQL) para persistir los datos en producción. En desarrollo local, usa archivos JSON.
 
-### Configuración de Vercel KV (Requerido para Producción)
+### Configuración de Supabase (Requerido para Producción)
 
-**IMPORTANTE:** Sin Vercel KV configurado, los datos se perderán en cada "cold start" de Vercel.
+**IMPORTANTE:** Sin Supabase configurado, los datos se perderán en cada "cold start" de Vercel.
 
-Para configurar Vercel KV:
+Para configurar Supabase:
 
-1. Ve a tu proyecto en [Vercel Dashboard](https://vercel.com/dashboard)
-2. Ve a la pestaña **Storage** > **Create Database** > Selecciona **KV**
-3. Conecta la base de datos a tu proyecto
-4. Vercel configurará automáticamente las variables de entorno necesarias
+1. Crea una cuenta y proyecto en [Supabase](https://supabase.com) (gratis)
+2. Crea la tabla de productos usando el SQL en `SUPABASE_SETUP.md`
+3. Obtén las credenciales de API desde Settings > API
+4. Configura las variables de entorno en Vercel:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 5. Redespliega tu aplicación
 
-Ver `VERCEL_KV_SETUP.md` para instrucciones detalladas.
+Ver `SUPABASE_SETUP.md` para instrucciones detalladas paso a paso.
 
 ## Despliegue en Vercel
 
